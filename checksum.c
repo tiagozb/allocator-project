@@ -1,0 +1,2 @@
+int checksum(void) {
+}
