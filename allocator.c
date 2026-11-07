@@ -3,7 +3,6 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include "allocator.h"
-#include "checksum.h"
 
 #define ALIGNMENT 40
 #define PATTERN_SIZE 5
@@ -15,8 +14,6 @@ static size_t heap_size;
 typedef struct {
     size_t block_size;
     bool is_free;
-    uint32_t metadata_checksum;
-    uint32_t payload_checksum;
 } BlockHeader;
 
 int mm_init(uint8_t *heap, size_t size) {
@@ -28,15 +25,32 @@ int mm_init(uint8_t *heap, size_t size) {
     heap_size = size;
 
     BlockHeader *header_ptr = (BlockHeader *) heap_ptr;
-    (*header_ptr).block_size = heap_size;
-    (*header_ptr).is_free = true;
-    (*header_ptr).metadata_checksum = calculate_metadata_checksum(header_ptr);
-    (*header_ptr).payload_checksum = calculate_payload_checksum(header_ptr, (*header_ptr).block_size);
+    header_ptr->block_size = heap_size;
+    header_ptr->is_free = true;
     return 0;
 }
 
 void *mm_malloc(size_t payload_size) {
-    
+    bool found_free = false;
+    BlockHeader *header_ptr = heap_ptr;
+
+    while (!found_free) {
+        if (header_ptr->block_size >= payload_size + sizeof(BlockHeader) && header_ptr->is_free) {
+            found_free = true;
+
+            size_t prev_block_size = header_ptr->block_size;
+
+            header_ptr->is_free = false;
+            header_ptr->block_size = (((payload_size + sizeof(BlockHeader) + 39) / 40) * 40) - sizeof(BlockHeader);
+
+            BlockHeader *split_header = (BlockHeader *) heap_ptr + header_ptr->block_size;
+            split_header->block_size = prev_block_size - payload_size - sizeof(BlockHeader);
+            split_header->is_free = true;
+
+            return (void *) header_ptr + sizeof(BlockHeader);
+        }
+    }
+    return NULL;
 }
 
 size_t mm_read(void *ptr, size_t offset, void *buf, size_t len) {
