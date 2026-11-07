@@ -1,15 +1,16 @@
 #include <stddef.h>
 #include <stdint.h>
-#include <stdio.h>
 #include <stdbool.h>
 #include "allocator.h"
 
 #define ALIGNMENT 40
 #define PATTERN_SIZE 5
+#define ALIGN(x) ((((x) + ALIGNMENT - 1) / ALIGNMENT) * ALIGNMENT)
 
 
 static uint8_t *heap_ptr;
 static size_t heap_size;
+
 
 typedef struct {
     size_t block_size;
@@ -17,7 +18,7 @@ typedef struct {
 } BlockHeader;
 
 int mm_init(uint8_t *heap, size_t size) {
-    if (heap == NULL || heap_size == 0) {
+    if (heap == NULL || heap_size < ALIGNMENT) {
         return -1;
     }
 
@@ -31,17 +32,14 @@ int mm_init(uint8_t *heap, size_t size) {
 }
 
 void *mm_malloc(size_t payload_size) {
-    bool found_free = false;
     BlockHeader *header_ptr = heap_ptr;
 
-    while (!found_free) {
+    while (header_ptr < heap_size) {
         if (header_ptr->block_size >= payload_size + sizeof(BlockHeader) && header_ptr->is_free) {
-            found_free = true;
-
             size_t prev_block_size = header_ptr->block_size;
 
             header_ptr->is_free = false;
-            header_ptr->block_size = (((payload_size + sizeof(BlockHeader) + 39) / 40) * 40) - sizeof(BlockHeader);
+            header_ptr->block_size = ALIGN(payload_size + sizeof(BlockHeader)) - sizeof(BlockHeader);
 
             BlockHeader *split_header = (BlockHeader *) heap_ptr + header_ptr->block_size;
             split_header->block_size = prev_block_size - payload_size - sizeof(BlockHeader);
