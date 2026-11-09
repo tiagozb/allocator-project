@@ -3,6 +3,7 @@
 #include <stdbool.h>
 #include <string.h>
 #include "allocator.h"
+#include <stdio.h>
 
 #define ALIGNMENT 40
 #define PATTERN_SIZE 5
@@ -46,7 +47,8 @@ void *mm_malloc(size_t payload_size) {
             header_ptr->is_free = false;
             size_t free_block_space = header_ptr->payload_space - ALIGN_UP(payload_size);
 
-            if (free_block_space > ALIGN_UP(sizeof(BlockHeader))) {
+            if (free_block_space >= ALIGN_UP(sizeof(BlockHeader)) + ALIGNMENT) {
+
                 header_ptr->payload_space = ALIGN_UP(payload_size);
 
                 BlockHeader *new_header_ptr = (BlockHeader *)(block_ptr + ALIGN_UP((sizeof(BlockHeader))) + ALIGN_UP(payload_size));
@@ -58,8 +60,4 @@ void *mm_malloc(size_t payload_size) {
         block_ptr += ALIGN_UP(sizeof(BlockHeader)) + header_ptr->payload_space;
     }
     return NULL;
-}
-
-int main() {
-    return 0;
 }
