@@ -71,7 +71,7 @@ void *mm_malloc(size_t data_size) {
 size_t mm_read(void *ptr, size_t offset, void *buf, size_t len) {
     BlockHeader *header_ptr = (BlockHeader *)(((uint8_t)ptr) - ALIGN_UP(sizeof(BlockHeader)));
 
-    if (header_ptr->data_space < offset + len && !(header_ptr->is_free)) {
+    if (header_ptr->data_space < offset + len && header_ptr->is_free) {
         return -1;
     }
     uint8_t *data_ptr = ((uint8_t *)ptr) + len;
@@ -81,8 +81,8 @@ size_t mm_read(void *ptr, size_t offset, void *buf, size_t len) {
 
 size_t mm_write(void *ptr, size_t offset, const void *src, size_t len) {
     BlockHeader *header_ptr = (BlockHeader *)(((uint8_t)ptr) - ALIGN_UP(sizeof(BlockHeader)));
-    
-    if (header_ptr->data_space < offset + len && !(header_ptr->is_free)) {
+
+    if (header_ptr->data_space < offset + len && header_ptr->is_free) {
         return -1;
     }
     uint8_t *data_ptr = ((uint8_t *)ptr) + len;
